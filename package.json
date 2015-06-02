@@ -1,0 +1,19 @@
+{
+  "name": "portfolio",
+  "description": "Hello, I'm Lukas Drahnik",
+  "homepage": "http://ldrahnik.com",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/ldrahnik/ldrahnik.com.git"
+  },
+  "authors": [
+    {
+      "name": "Lukáš Drahník",
+      "homepage": "http://ldrahnik.com"
+    }
+  ],
+  "devDependencies": {
+    "grunt": "~0.4.5",
+    "grunt-minified": "~0.10.0"
+  }
+}
