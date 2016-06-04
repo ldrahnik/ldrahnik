@@ -1,180 +1,216 @@
 $(function () {
 
-  var nodes = [];
-  var edges = [];
+    var nodes = [];
+    var edges = [];
 
-  var githubNode = 1;
+    var githubNode = 1;
+    var username = 'ldrahnik';
 
-  addNode(githubNode, 'github', 'http://github.com/', '');
+    addNode(githubNode, 'github', 'http://github.com/', '');
 
-  appendGithubReposForUsername('ldrahnik', ["growjob", "metisFW"], githubNode);
+    appendGithubReposForUsername(username, ["growjob", "metisFW"], githubNode);
 
-  function appendGithubReposForUsername(username, unlistedOrgs, parentNode) {
-    var userUrl = getAPIUserUrl(username);
+    function appendGithubReposForUsername(username, unlistedOrgs, parentNode) {
+      var userUrl = getAPIUserUrl(username);
 
-    requestJSON(userUrl, function (githubUser) {
-      if (githubUser.message != "Not Found") {
+      requestJSON(userUrl, function (githubUser) {
+        if (githubUser && githubUser.message != "Not Found") {
 
-        var userNode = githubUser.id;
-        var gistsNode = githubUser.id + 1;
+          var userNode = githubUser.id;
+          var gistsNode = githubUser.id + 1;
 
-        addNode(userNode, username, githubUser.html_url, githubUser.bio);
-        addNode(gistsNode, 'gists', getGistUserUrl(username), '');
+          addNode(userNode, username, githubUser.html_url, githubUser.bio);
+          addNode(gistsNode, 'gists', getGistUserUrl(username), '');
 
-        addEdge(parentNode, userNode);
-        addEdge(githubNode, gistsNode);
+          addEdge(parentNode, userNode);
+          addEdge(githubNode, gistsNode);
 
-        // all user -> repos
-        $.getJSON(githubUser.repos_url, function (json) {
-          addRepos(json, userNode);
-        });
+          // all user -> repos
+          $.getJSON(githubUser.repos_url, function (json) {
+           addRepos(json, userNode);
+           });
 
-        // all user -> orgs -> repos
-        $.getJSON(githubUser.organizations_url, function (orgs) {
-          $.each(orgs, function (index, org) {
-            addOrgsRepos(org, userNode);
+          // all user -> orgs -> repos
+          $.getJSON(githubUser.organizations_url, function (orgs) {
+            $.each(orgs, function (index, org) {
+              addOrgsRepos(org, userNode);
+            });
           });
-        });
 
-        // all user -> unlistedOrgs -> repos
-        $.each(unlistedOrgs, function (index, orgName) {
-          var orgUrl = getAPIOrganizationUrl(orgName);
-          $.getJSON(orgUrl, function (org) {
-            addOrgsRepos(org, githubNode);
-          });
-        });
+          // all user -> unlistedOrgs -> repos
+          $.each(unlistedOrgs, function (index, orgName) {
+           var orgUrl = getAPIOrganizationUrl(orgName);
+           $.getJSON(orgUrl, function (org) {
+           addOrgsRepos(org, githubNode);
+           });
+           });
 
-        // all user -> gists
-        var gistsUrl = getAPIUserGistsUrl(username);
-        $.getJSON(gistsUrl, function (json) {
-          addGists(json, gistsNode);
-        });
+           // all user -> gists
+           var gistsUrl = getAPIUserGistsUrl(username);
+           $.getJSON(gistsUrl, function (json) {
+           addGists(json, gistsNode);
+           });
+        }
+      });
+    }
+
+    function getAPIUserGistsUrl(username) {
+      return 'https://api.github.com/users/' + username + '/gists';
+    }
+
+    function getAPIUserUrl(username) {
+      return 'https://api.github.com/users/' + username;
+    }
+
+    function getAPIOrganizationUrl(orgName) {
+      return 'https://api.github.com/orgs/' + orgName;
+    }
+
+    function getOrganizationUrl(orgName) {
+      return 'https://github.com/' + orgName;
+    }
+
+    function getGistUserUrl(username) {
+      return 'https://gist.github.com/' + username;
+    }
+
+    function addNode(id, label, url, description) {
+      if (!nodes.find(function (element, index, array, id) {
+          return element.id === id;
+        })) {
+        nodes = nodes.concat(
+          {
+            id: id,
+            label: label,
+            url: url,
+            description: description
+          }
+        );
       }
-    });
-  }
+    }
 
-  function getAPIUserGistsUrl(username) {
-    return 'https://api.github.com/users/' + username + '/gists';
-  }
+    function addEdge(from, to) {
+      if (!edges.find(function (element, index, array, from, to) {
+          return element.from === from && element.to === to;
+        })) {
+        edges = edges.concat(
+          {
+            from: from,
+            to: to
+          }
+        );
+      }
+    }
 
-  function getAPIUserUrl(username) {
-    return 'https://api.github.com/users/' + username;
-  }
+    function isUserLoginAndUsernameIdentical(user) {
+      return user.login === username;
+    }
 
-  function getAPIOrganizationUrl(orgName) {
-    return 'https://api.github.com/orgs/' + orgName;
-  }
+    function isOwner(repo) {
+      return isUserLoginAndUsernameIdentical(repo.owner);
+    }
 
-  function getOrganizationUrl(orgName) {
-    return 'https://github.com/' + orgName;
-  }
+    function ifIsContributor(repo, callback) {
+      requestJSON(repo.contributors_url, function (contributors) {
+        if (contributors.find(isUserLoginAndUsernameIdentical)) {
+          callback();
+        }
+      });
+    }
 
-  function getGistUserUrl(username) {
-    return 'https://gist.github.com/' + username;
-  }
+    function isRepoOwnerOrContributor(repo, callback) {
+      if (isOwner(repo)) {
+        callback();
+      } else {
+        ifIsContributor(repo, callback);
+      }
+    }
 
-  function addNode(id, label, url, description) {
-    nodes = nodes.concat(
-      {
-        id: id,
-        label: label,
+    function addRepo(repo, parentNode) {
+      isRepoOwnerOrContributor(repo, function () {
+        addNode(repo.id, repo.name, repo.html_url, repo.description);
+        addEdge(parentNode, repo.id);
+        createNetwork();
+      });
+    }
+
+    function addRepos(repos, parentNode) {
+      $.each(repos, function (index, repo) {
+        if (repo.fork == false) {
+          addRepo(repo, parentNode);
+        }
+      });
+    }
+
+    function addOrgsRepos(org, parentNode) {
+      addNode(org.id, org.login, getOrganizationUrl(org.login), org.description);
+      addEdge(parentNode, org.id);
+
+      $.getJSON(org.repos_url, function (orgRepos) {
+        addRepos(orgRepos, org.id);
+      });
+    }
+
+    function addGists(gists, parentNode) {
+      $.each(gists, function (index, gist) {
+        var label = '...';
+        if (gist.description) {
+          label = gist.description.substr(0, 12) + '...';
+        }
+        addNode(gist.id, label, gist.html_url, gist.description);
+        addEdge(parentNode, gist.id);
+      });
+    }
+
+    function requestJSON(url, callback) {
+      $.ajax({
         url: url,
-        description: description
-      }
-    );
-  }
-
-  function addEdge(from, to) {
-    edges = edges.concat(
-      {
-        from: from,
-        to: to
-      }
-    );
-  }
-
-  function addRepo(repo, parentNode) {
-    addNode(repo.id, repo.name, repo.html_url, repo.description);
-    addEdge(parentNode, repo.id);
-    createNetwork();
-  }
-
-  function addRepos(repos, parentNode) {
-    $.each(repos, function (index, repo) {
-      if (repo.fork == false) {
-        addRepo(repo, parentNode);
-      }
-    });
-  }
-
-  function addOrgsRepos(org, parentNode) {
-    addNode(org.id, org.login, getOrganizationUrl(org.login), org.description);
-    addEdge(parentNode, org.id);
-
-    $.getJSON(org.repos_url, function (orgRepos) {
-      addRepos(orgRepos, org.id);
-    });
-  }
-
-  function addGists(gists, parentNode) {
-    $.each(gists, function (index, gist) {
-      var label = '...';
-      if (gist.description) {
-        label = gist.description.substr(0, 12) + '...';
-      }
-      addNode(gist.id, label, gist.html_url, gist.description);
-      addEdge(parentNode, gist.id);
-    });
-  }
-
-  function requestJSON(url, callback) {
-    $.ajax({
-      url: url,
-      complete: function (xhr) {
-        callback.call(null, xhr.responseJSON);
-      }
-    });
-  }
-
-  function createNetwork() {
-    var container = document.getElementById('network-map');
-
-    var options = {
-      nodes: {
-        color: {
-          background: '#6c7486',
-          highlight: '#959cad'
+        complete: function (xhr) {
+          callback.call(null, xhr.responseJSON);
         }
-      },
-      zoomable: false,
-      dragNetwork: false
-    };
+      });
+    }
 
-    var data = {
-      nodes: nodes,
-      edges: edges
-    };
-    var network = new vis.Network(container, data, options);
+    function createNetwork() {
+      var container = document.getElementById('network-map');
 
-    network.on('click', function (properties) {
-      var node;
-      for (var i = 0; i < data['nodes'].length; i++) {
-        if (data['nodes'][i].id == properties['nodes'][0]) {
-          node = data['nodes'][i];
+      var options = {
+        nodes: {
+          color: {
+            background: '#6c7486',
+            highlight: '#959cad'
+          }
+        },
+        zoomable: false,
+        dragNetwork: false
+      };
+
+      var data = {
+        nodes: nodes,
+        edges: edges
+      };
+      var network = new vis.Network(container, data, options);
+
+      network.on('click', function (properties) {
+        var node;
+        for (var i = 0; i < data['nodes'].length; i++) {
+          if (data['nodes'][i].id == properties['nodes'][0]) {
+            node = data['nodes'][i];
+          }
         }
-      }
 
-      if (node) {
-        var infoHtml = '<a href="' + node.url + '">' + node.label + '</a>';
-        $('#node-info').html(infoHtml);
-        if (node.description != undefined) {
-          var descriptionHtml = '<span style="color: #959bae;">' + node.description + '</span>';
-          $('#node-info-description').html(descriptionHtml);
-        } else {
-          $('#node-info-description').html('');
+        if (node) {
+          var infoHtml = '<a href="' + node.url + '">' + node.label + '</a>';
+          $('#node-info').html(infoHtml);
+          if (node.description != undefined) {
+            var descriptionHtml = '<span style="color: #959bae;">' + node.description + '</span>';
+            $('#node-info-description').html(descriptionHtml);
+          } else {
+            $('#node-info-description').html('');
+          }
         }
-      }
-    });
+      });
+    }
+
   }
-
-});
+);
