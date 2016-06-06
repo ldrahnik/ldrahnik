@@ -63,31 +63,23 @@ $(function () {
     }
 
     function addNode(id, label, url, description) {
-      if (!nodes.find(function (element, index, array, id) {
-          return element.id === id;
-        })) {
-        nodes = nodes.concat(
-          {
-            id: id,
-            label: label,
-            url: url,
-            description: description
-          }
-        );
-      }
+      nodes = nodes.concat(
+        {
+          id: id,
+          label: label,
+          url: url,
+          description: description
+        }
+      );
     }
 
     function addEdge(from, to) {
-      if (!edges.find(function (element, index, array, from, to) {
-          return element.from === from && element.to === to;
-        })) {
-        edges = edges.concat(
-          {
-            from: from,
-            to: to
-          }
-        );
-      }
+      edges = edges.concat(
+        {
+          from: from,
+          to: to
+        }
+      );
     }
 
     function isUserLoginAndUsernameIdentical(user) {
