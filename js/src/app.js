@@ -8,9 +8,9 @@ $(function () {
 
     addNode(githubNode, 'github', 'http://github.com/', '');
 
-    appendGithubReposForUsername(username, ["growjob", "metisFW"], githubNode);
+    appendGithubReposForUsername(username, githubNode);
 
-    function appendGithubReposForUsername(username, unlistedOrgs, parentNode) {
+    function appendGithubReposForUsername(username, parentNode) {
       var userUrl = getAPIUserUrl(username);
 
       requestJSON(userUrl, function (githubUser) {
@@ -27,8 +27,8 @@ $(function () {
 
           // all user -> repos
           $.getJSON(githubUser.repos_url, function (json) {
-           addRepos(json, userNode);
-           });
+            addRepos(json, userNode);
+          });
 
           // all user -> orgs -> repos
           $.getJSON(githubUser.organizations_url, function (orgs) {
@@ -37,19 +37,11 @@ $(function () {
             });
           });
 
-          // all user -> unlistedOrgs -> repos
-          $.each(unlistedOrgs, function (index, orgName) {
-           var orgUrl = getAPIOrganizationUrl(orgName);
-           $.getJSON(orgUrl, function (org) {
-           addOrgsRepos(org, githubNode);
-           });
-           });
-
-           // all user -> gists
-           var gistsUrl = getAPIUserGistsUrl(username);
-           $.getJSON(gistsUrl, function (json) {
-           addGists(json, gistsNode);
-           });
+          // all user -> gists
+          var gistsUrl = getAPIUserGistsUrl(username);
+          $.getJSON(gistsUrl, function (json) {
+            addGists(json, gistsNode);
+          });
         }
       });
     }
@@ -60,10 +52,6 @@ $(function () {
 
     function getAPIUserUrl(username) {
       return 'https://api.github.com/users/' + username;
-    }
-
-    function getAPIOrganizationUrl(orgName) {
-      return 'https://api.github.com/orgs/' + orgName;
     }
 
     function getOrganizationUrl(orgName) {
