@@ -56,7 +56,7 @@ $(function () {
     }
 
     function getGithubUserEventUrl(username) {
-      return 'https://api.github.com/users/' + username + '/events';
+      return 'https://api.github.com/users/' + username + '/events?page=1&per_page=1000';
     }
 
     function getAPIUserGistsUrl(username) {
