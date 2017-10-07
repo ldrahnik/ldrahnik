@@ -37,6 +37,15 @@ $(function () {
             });
           });
 
+          // all event -> orgs -> repos (contribution)
+          $.getJSON(getGithubUserEventUrl(username), function (events) {
+              $.each(events, function (index, event) {
+                  if(event.org) {
+                      addOrgsRepos(event.org, userNode);
+                  }
+              });
+          });
+
           // all user -> gists
           var gistsUrl = getAPIUserGistsUrl(username);
           $.getJSON(gistsUrl, function (json) {
@@ -44,6 +53,10 @@ $(function () {
           });
         }
       });
+    }
+
+    function getGithubUserEventUrl(username) {
+      return 'https://api.github.com/users/' + username + '/events';
     }
 
     function getAPIUserGistsUrl(username) {
@@ -62,24 +75,48 @@ $(function () {
       return 'https://gist.github.com/' + username;
     }
 
+    function getOrganizationReposUrl(org) {
+      return 'https://api.github.com/orgs/' + org.login + '/repos';
+    }
+
     function addNode(id, label, url, description) {
-      nodes = nodes.concat(
-        {
-          id: id,
-          label: label,
-          url: url,
-          description: description
+        var found = false;
+        for(var i = 0; i < nodes.length; i++) {
+            if (nodes[i].id == id) {
+                found = true;
+                break;
+            }
         }
-      );
+
+        if(!found) {
+            nodes = nodes.concat(
+                {
+                    id: id,
+                    label: label,
+                    url: url,
+                    description: description
+                }
+            );
+        }
     }
 
     function addEdge(from, to) {
-      edges = edges.concat(
-        {
-          from: from,
-          to: to
+        var found = false;
+        for (var i = 0; i < edges.length; i++) {
+            if (edges[i].from == from && edges[i].to == to) {
+                found = true;
+                break;
+            }
         }
-      );
+
+        if (!found) {
+            edges = edges.concat(
+                {
+                    from: from,
+                    to: to
+                }
+            );
+        }
     }
 
     function isUserLoginAndUsernameIdentical(user) {
@@ -126,7 +163,7 @@ $(function () {
       addNode(org.id, org.login, getOrganizationUrl(org.login), org.description);
       addEdge(parentNode, org.id);
 
-      $.getJSON(org.repos_url, function (orgRepos) {
+      $.getJSON(getOrganizationReposUrl(org), function (orgRepos) {
         addRepos(orgRepos, org.id);
       });
     }
